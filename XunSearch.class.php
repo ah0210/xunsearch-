@@ -7,12 +7,12 @@ require APP_PATH.'Common/xunsearch/lib/XS.php';
  * 说明:
  * 需要根据项目目录引用XS.php
  * 项目名称为配置文件里的project.name
- * 所有方法静态调用并且肯定独立使用,不需要初始化
+ * 所有方法静态调用并且能独立使用,不需要初始化
  *
  * @author Turnover <hehan123456@qq.com>
  */
 
-class XunSearch extends \XS
+class XunSearch extends XS
 {
     /**
      * @var array 实例列表
@@ -372,6 +372,7 @@ class XunSearch extends \XS
      */
     protected static function errorMsg($code = 0,$ext = array())
     {
+        $msg = '';
         switch ($code) {
             case 1:
                 $msg = '项目名称填写错误';
