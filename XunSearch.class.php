@@ -338,17 +338,6 @@ class XunSearch extends \XS
         self::index(self::$conf)->flushIndex();
     }
 
-    /*public static function openBuffer($app,$size = '')
-    {
-        self::index($app);
-        self::index(self::$conf)->openBuffer($size);
-    }
-
-    public static function closeBuffer()
-    {
-        self::index(self::$conf)->closeBuffer();
-    }*/
-
     /**
      * 按','分割成数组
      *
