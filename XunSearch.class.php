@@ -91,7 +91,7 @@ class XunSearch extends XS
                 self::$ojb[$app][$name] = $xun->$name;
             }
             return self::$ojb[$app][$name];
-        } else if (in_array($name,array('hot','suggest','corrected'))) {
+        } else if (in_array($name,array('hot','suggest','corrected','related'))) {
             switch ($name) {
                 case 'hot':    //no break
                 case 'corrected':
@@ -99,6 +99,9 @@ class XunSearch extends XS
                     break;
                 case 'suggest':
                     $func = 'getExpandedQuery';
+                    break;
+                case 'related':
+                    $func = 'getRelatedQuery';
                     break;
                 default:
                     $func = 'getCorrectedQuery';
@@ -141,7 +144,7 @@ class XunSearch extends XS
         if ($result['count'] == 0) {
             $result['corrected'] = self::corrected($app,$keyWord);
             $result['suggest']   = self::suggest($app,$keyWord);
-
+            $result['related']   = self::related($app,$keyWord);
             /**
              * 如果没搜到结果,按照建议词的第一个
              */
