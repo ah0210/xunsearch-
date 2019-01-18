@@ -151,6 +151,39 @@ class XunSearch extends XS
     }
 
     /**
+     * 搜索建议列表
+     *
+     * @param string $app 项目名称
+     * @param string $keyWord 搜索词
+     * @return mixed
+     */
+    public static function suggetList($app = '', $keyWord = '') {
+        return self::suggest($app, $keyWord);
+    }
+
+    /**
+     * 搜索热词列表
+     *
+     * @param string $app 项目名称
+     * @param string $keyWord 搜索词
+     * @return mixed
+     */
+    public static function hotList($app = '', $keyWord = '') {
+        return self::hot($app, $keyWord);
+    }
+
+    /**
+     * 搜索纠错列表
+     *
+     * @param string $app 项目名称
+     * @param string $keyWord 搜索词
+     * @return mixed
+     */
+    public static function correctedList($app = '', $keyWord = '') {
+        return self::corrected($app, $keyWord);
+    }
+
+    /**
      * 过滤规则
      *
      * @param array $filter 过滤列表
