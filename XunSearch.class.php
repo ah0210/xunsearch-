@@ -362,6 +362,11 @@ class XunSearch extends XS
         self::index($app)->flushIndex();
     }
 
+    /**
+     * 开启缓冲区
+     *
+     * @param string $size 缓冲区大小
+     */
     public static function openBuffer($size = '')
     {
         self::$buffer = true;
@@ -370,6 +375,9 @@ class XunSearch extends XS
         }
     }
 
+    /**
+     * 关闭缓冲区
+     */
     public static function closeBuffer()
     {
         if (self::$buffer) {
