@@ -95,13 +95,11 @@ class XunSearch extends XS
             switch ($name) {
                 case 'hot':    //no break
                 case 'corrected':
+                case 'related':
                     $func = 'get'.ucfirst($name).'Query';
                     break;
                 case 'suggest':
                     $func = 'getExpandedQuery';
-                    break;
-                case 'related':
-                    $func = 'getRelatedQuery';
                     break;
                 default:
                     $func = 'getCorrectedQuery';
