@@ -425,8 +425,6 @@ class XunSearch extends XS
             self::$buffer = false;
             $app = self::getApp();
             self::index($app)->closeBuffer();
-        } else {
-            self::errorMsg(7);
         }
     }
 
