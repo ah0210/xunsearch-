@@ -404,9 +404,9 @@ class XunSearch extends XS
     /**
      * 开启缓冲区
      *
-     * @param string $size 缓冲区大小
+     * @param int $size 缓冲区大小
      */
-    public static function openBuffer($size = '')
+    public static function openBuffer($size = 0)
     {
         self::$buffer = true;
         if (!empty($size) && $size > 0) {
