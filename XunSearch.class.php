@@ -202,6 +202,17 @@ class XunSearch extends XS
     {
         $index  = self::index($app);
         $keyArr = self::setArray($key);
+
+        /**
+         * 开启缓冲区
+         */
+        if (self::$buffer) {
+            $index->openBuffer(self::$bufferSize);
+        }
+
+        /**
+         * 删除
+         */
         if (empty($field)) {
             $index->del($keyArr);
         } else {
@@ -247,7 +258,7 @@ class XunSearch extends XS
      * @param array  $data   添加数据
      * @param array  $option 设置选项
      *   flush 是否立即刷新
-     *   method:数据存储方法
+     *   method 数据存储方法
      *     update 强制使用更新方法
      *     add 强制使用增加方法
      *     default 自动判断
@@ -300,11 +311,6 @@ class XunSearch extends XS
                 if ($flush) {
                     self::flush();
                 }
-
-                /**
-                 * 关闭缓冲区
-                 */
-                self::closeBuffer();
                 return true;
             } else {
                 self::errorMsg(4);
@@ -377,6 +383,8 @@ class XunSearch extends XS
 
     /**
      * 关闭缓冲区
+     *
+     * @throws XSException
      */
     public static function closeBuffer()
     {
@@ -384,6 +392,8 @@ class XunSearch extends XS
             self::$buffer = false;
             $app = self::getApp();
             self::index($app)->closeBuffer();
+        } else {
+            self::errorMsg(7);
         }
     }
 
@@ -430,8 +440,21 @@ class XunSearch extends XS
             case 6:
                 $msg = '没有'.$ext['field'].'字段';
                 break;
+            case 7:
+                $msg = '关闭失败,必须先开启缓存';
+                break;
         }
         throw new XSException($msg);
         exit;
+    }
+
+    public function __destruct()
+    {
+        parent::__destruct();
+
+        /**
+         * 关闭缓冲区
+         */
+        self::closeBuffer();
     }
 }
