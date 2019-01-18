@@ -12,7 +12,7 @@ require APP_PATH.'Common/xunsearch/lib/XS.php';
  * @author Turnover <hehan123456@qq.com>
  */
 
-class XunSearch extends XS
+class XunSearch extends \XS
 {
     /**
      * @var array 实例列表
@@ -28,6 +28,16 @@ class XunSearch extends XS
      * @var string 项目名称
      */
     private static $conf = '';
+
+    /**
+     * @var bool 开启缓冲区
+     */
+    private static $buffer = false;
+
+    /**
+     * @var int 缓冲区大小
+     */
+    private static $bufferSize = 4;
 
     /**
      * 初始化
@@ -60,7 +70,7 @@ class XunSearch extends XS
         }
     }
 
-    public static function getApp($app)
+    public static function getApp($app = '')
     {
         return !empty($app) ?  $app : (!empty(self::$conf) ? self::$conf : '');
     }
@@ -131,7 +141,6 @@ class XunSearch extends XS
         if ($result['count'] == 0) {
             $result['corrected'] = self::corrected($app,$keyWord);
             $result['suggest']   = self::suggest($app,$keyWord);
-            //$result['hot']       = self::hot($app,$keyWord);
 
             /**
              * 如果没搜到结果,按照建议词的第一个
@@ -193,10 +202,10 @@ class XunSearch extends XS
     {
         $index  = self::index($app);
         $keyArr = self::setArray($key);
-        $fields = self::getFields();
         if (empty($field)) {
             $index->del($keyArr);
         } else {
+            $fields = self::getFields();
             if (in_array($field,$fields)) {
                 $index->del($keyArr,$field);
             } else {
@@ -256,6 +265,13 @@ class XunSearch extends XS
                 $doc->setFields($data);
 
                 /**
+                 * 开启缓冲区
+                 */
+                if (self::$buffer) {
+                    $index->openBuffer(self::$bufferSize);
+                }
+
+                /**
                  * 选项操作
                  */
                 $option = array_merge(array(
@@ -284,6 +300,11 @@ class XunSearch extends XS
                 if ($flush) {
                     self::flush();
                 }
+
+                /**
+                 * 关闭缓冲区
+                 */
+                self::closeBuffer();
                 return true;
             } else {
                 self::errorMsg(4);
@@ -332,21 +353,30 @@ class XunSearch extends XS
 
     /**
      * 立即刷新
+     *
+     * @param string $app
      */
-    public static function flush ()
+    public static function flush ($app = '')
     {
-        self::index(self::$conf)->flushIndex();
+        $app = self::getApp($app);
+        self::index($app)->flushIndex();
     }
 
-    public static function openBuffer($app,$size = '')
+    public static function openBuffer($size = '')
     {
-        self::index($app);
-        self::index(self::$conf)->openBuffer($size);
+        self::$buffer = true;
+        if (!empty($size) && $size > 0) {
+            self::$bufferSize = $size;
+        }
     }
 
     public static function closeBuffer()
     {
-        self::index(self::$conf)->closeBuffer();
+        if (self::$buffer) {
+            self::$buffer = false;
+            $app = self::getApp();
+            self::index($app)->closeBuffer();
+        }
     }
 
     /**
@@ -372,7 +402,6 @@ class XunSearch extends XS
      */
     protected static function errorMsg($code = 0,$ext = array())
     {
-        $msg = '';
         switch ($code) {
             case 1:
                 $msg = '项目名称填写错误';
