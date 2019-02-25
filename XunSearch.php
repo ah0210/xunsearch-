@@ -259,7 +259,7 @@ class XunSearch extends XS
      * @param string $app 项目名称
      * @param array|string $key 删除的键值 array('123',456)|$str = '123,456';
      * @param string $field 指定字段(按照配置文件字段指定)
-     * @return bool             正确返回true
+     * @return bool 正确返回true
      * @throws XSException
      */
     public static function del($app = '', $key, $field = '')
@@ -353,13 +353,17 @@ class XunSearch extends XS
                         $priKey = self::getFields($app, 'id');
                         $search = self::search();
                         self::flush();
-                        $count = $search->count($priKey . ':' . $data[$priKey]);
-                        if ($count > 0) {
-                            $func = 'update';
+                        if (!empty($data[$priKey]) && is_numeric($data[$priKey])) {
+                            $count = $search->count($priKey . ':' . $data[$priKey]);
+                            if ($count > 0) {
+                                $func = 'update';
+                            } else {
+                                $func = 'add';
+                            }
+                            $index->$func($doc);
                         } else {
-                            $func = 'add';
+                            self::errorMsg(5);
                         }
-                        $index->$func($doc);
                         break;
                 }
                 if ($flush) {
