@@ -185,8 +185,8 @@ class XunSearch extends XS
             foreach ($searchList as $k => $v) {
                 foreach ($fields as $field) {
                     $result['list'][$k][$field] = $v->$field;
-                    $result['list'][$k]['percent'] = $v->percent() . '%';
                 }
+                $result['list'][$k]['percent'] = $v->percent() . '%';
             }
         }
         $result['count'] = $search->getLastCount();
@@ -201,14 +201,17 @@ class XunSearch extends XS
             //$result['hot'] = self::hot($app,$keyWord);
 
             /**
-             * 如果没搜到结果,按照建议词的第一个
+             * 如果没搜到结果,按照建议词的第一个或者纠错第一个
              */
             if (!empty($result['suggest'])) {
-                $result = array_merge(
-                    $result,
-                    self::listing($app, $result['suggest'][0], $filter)
-                );
+                $keyWord = $result['suggest'][0];
+            } else if (!empty($result['corrected'])) {
+                $keyWord = $result['corrected'][0];
             }
+            $result = array_merge(
+                $result,
+                $res = self::listing($app, $keyWord, $filter)
+            );
 
         }
         return $result;
