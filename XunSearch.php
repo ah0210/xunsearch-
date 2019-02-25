@@ -117,6 +117,54 @@ class XunSearch extends XS
     }
 
     /**
+     * 搜索建议列表
+     *
+     * @param string $app 项目名称
+     * @param string $keyWord 搜索词
+     * @return mixed
+     */
+    public static function suggetList($app = '', $keyWord = '')
+    {
+        return self::suggest($app, $keyWord);
+    }
+
+    /**
+     * 搜索纠错列表
+     *
+     * @param string $app 项目名称
+     * @param string $keyWord 搜索词
+     * @return mixed
+     */
+    public static function relatedList($app = '', $keyWord = '')
+    {
+        return self::related($app, $keyWord);
+    }
+
+    /**
+     * 搜索热词列表
+     *
+     * @param string $app 项目名称
+     * @param string $keyWord 搜索词
+     * @return mixed
+     */
+    public static function hotList($app = '', $keyWord = '')
+    {
+        return self::hot($app, $keyWord);
+    }
+
+    /**
+     * 搜索纠错列表
+     *
+     * @param string $app 项目名称
+     * @param string $keyWord 搜索词
+     * @return mixed
+     */
+    public static function correctedList($app = '', $keyWord = '')
+    {
+        return self::corrected($app, $keyWord);
+    }
+
+    /**
      * 获取搜索结果
      *
      * @param  string $app 项目名称
@@ -125,7 +173,7 @@ class XunSearch extends XS
      * @return array 返回数据结果和总数
      * @throws XSException
      */
-    public static function listing ($app = '', $keyWord = '', $filter = array())
+    public static function listing($app = '', $keyWord = '', $filter = array())
     {
         $search = self::search($app);
         $search->setQuery($keyWord);
