@@ -203,14 +203,15 @@ class XunSearch extends XS
             /**
              * 如果没搜到结果,按照建议词的第一个或者纠错第一个
              */
+            $word = '';
             if (!empty($result['suggest'])) {
-                $keyWord = $result['suggest'][0];
+                $word = $result['suggest'][0];
             } else if (!empty($result['corrected'])) {
-                $keyWord = $result['corrected'][0];
+                $word = $result['corrected'][0];
             }
             $result = array_merge(
                 $result,
-                $res = self::listing($app, $keyWord, $filter)
+                self::listing($app, $word, $filter)
             );
 
         }
@@ -421,6 +422,17 @@ class XunSearch extends XS
             }
         }
         return $fieldList;
+    }
+
+    /**
+     * 刷新日志
+     *
+     * @param string $app
+     */
+    public static function flushLog ($app = '')
+    {
+        $app = self::getApp($app);
+        self::index($app)->flushLogging();
     }
 
     /**
