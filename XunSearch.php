@@ -26,7 +26,7 @@ class XunSearch extends XS
     /**
      * @var string 项目名称
      */
-    private static $conf = '';
+    private static $app = '';
 
     /**
      * @var bool 开启缓存
@@ -62,7 +62,7 @@ class XunSearch extends XS
             if (!isset(self::$xs[$app])) {
                 self::$xs[$app] = new self($app);
             }
-            self::$conf = $app;
+            self::$app = $app;
             return self::$xs[$app];
         } catch (XSException $e) {
             self::errorMsg(1);
@@ -71,7 +71,7 @@ class XunSearch extends XS
 
     public static function getApp($app = '')
     {
-        return !empty($app) ? $app : (!empty(self::$conf) ? self::$conf : '');
+        return !empty($app) ? $app : (!empty(self::$app) ? self::$app : '');
     }
 
     /**
@@ -195,10 +195,10 @@ class XunSearch extends XS
             $result['corrected'] = self::corrected($app, $keyWord);
             //搜索建议
             $result['suggest'] = self::suggest($app, $keyWord);
-            //相关搜索
-            //$result['related'] = self::related($app, $keyWord);
             //热门搜索
             //$result['hot'] = self::hot($app,$keyWord);
+            //相关搜索
+            //$result['related'] = self::related($app, $keyWord);
 
             /**
              * 如果没搜到结果,按照建议词的第一个或者纠错第一个
