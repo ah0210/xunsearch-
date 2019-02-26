@@ -123,7 +123,7 @@ class XunSearch extends XS
      * @param string $keyWord 搜索词
      * @return mixed
      */
-    public static function suggetList($app = '', $keyWord = '')
+    public static function suggestList($app = '', $keyWord = '')
     {
         return self::suggest($app, $keyWord);
     }
@@ -199,11 +199,12 @@ class XunSearch extends XS
             //$result['hot'] = self::hot($app,$keyWord);
             //相关搜索
             //$result['related'] = self::related($app, $keyWord);
+            $result['result'] = 0;
 
             /**
              * 如果没搜到结果,按照建议词的第一个或者纠错第一个
              */
-            $word = '';
+            /*$word = '';
             if (!empty($result['suggest'])) {
                 $word = $result['suggest'][0];
             } else if (!empty($result['corrected'])) {
@@ -212,7 +213,7 @@ class XunSearch extends XS
             $result = array_merge(
                 $result,
                 self::listing($app, $word, $filter)
-            );
+            );*/
 
         }
         return $result;
@@ -253,6 +254,7 @@ class XunSearch extends XS
                     break;
                 case "cutOf" :
                     $search->setCutOff($v);
+                    break;
             }
         }
     }
@@ -347,6 +349,7 @@ class XunSearch extends XS
                     'method' => 'default',
                 ), $option);
                 extract($option);
+                $priKey = self::getFields($app, 'id');
                 switch ($method) {
                     case 'update': //no break
                     case 'add':
@@ -354,7 +357,6 @@ class XunSearch extends XS
                         break;
                     case 'default':  //no break
                     default:
-                        $priKey = self::getFields($app, 'id');
                         $search = self::search();
                         self::flush();
                         if (!empty($data[$priKey]) && is_numeric($data[$priKey])) {
@@ -374,6 +376,9 @@ class XunSearch extends XS
                     self::flush();
                 }
 
+                unset($data[$priKey]);
+                self::training($data);
+
                 /**
                  * 关闭缓冲区
                  */
@@ -385,6 +390,27 @@ class XunSearch extends XS
         } else {
             self::errorMsg(5);
         }
+    }
+
+    /**
+     * 索引训练
+     *
+     * @param $keyword
+     * @throws XSException
+     */
+    public static function training($keyword)
+    {
+        $app = self::getApp();
+        if (is_string($keyword)) {
+            $keyword = self::setArray($keyword);
+        }
+
+        foreach ($keyword as $word) {
+            for ($i = 0; $i <= 50; $i++) {
+                self::listing($app, $word);
+            }
+        }
+        self::flushLog();
     }
 
     /**
@@ -429,7 +455,7 @@ class XunSearch extends XS
      *
      * @param string $app
      */
-    public static function flushLog ($app = '')
+    public static function flushLog($app = '')
     {
         $app = self::getApp($app);
         self::index($app)->flushLogging();
