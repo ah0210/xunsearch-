@@ -7,7 +7,6 @@ require dirname(__FILE__) . '/lib/XS.php';
  * 说明:
  * 需要根据项目目录引用XS.php
  * 项目名称为配置文件里的project.name
- * 所有方法静态调用并且可以独立使用,不需要初始化
  *
  * @author Turnover <hehan123456@qq.com>
  */
@@ -47,6 +46,7 @@ class XunSearch extends XS
     public function __construct($app = '')
     {
         parent::__construct($app);
+        self::$app = $app;
     }
 
     /**
@@ -129,7 +129,16 @@ class XunSearch extends XS
     }
 
     /**
-     * 搜索纠错列表
+     * @param string $keyWord
+     * @return mixed
+     */
+    public function getSuggest($keyWord = '')
+    {
+        return self::suggestList(self::$app, $keyWord);
+    }
+
+    /**
+     * 相关搜索列表
      *
      * @param string $app 项目名称
      * @param string $keyWord 搜索词
@@ -138,6 +147,15 @@ class XunSearch extends XS
     public static function relatedList($app = '', $keyWord = '')
     {
         return self::related($app, $keyWord);
+    }
+
+    /**
+     * @param string $keyWord
+     * @return mixed
+     */
+    public function getRelated($keyWord = '')
+    {
+        return self::relatedList(self::$app, $keyWord);
     }
 
     /**
@@ -153,6 +171,15 @@ class XunSearch extends XS
     }
 
     /**
+     * @param string $keyWord
+     * @return mixed
+     */
+    public function getHot($keyWord = '')
+    {
+        return self::hotList(self::$app, $keyWord);
+    }
+
+    /**
      * 搜索纠错列表
      *
      * @param string $app 项目名称
@@ -163,6 +190,16 @@ class XunSearch extends XS
     {
         return self::corrected($app, $keyWord);
     }
+
+    /**
+     * @param string $keyWord
+     * @return mixed
+     */
+    public function getCorrected($keyWord = '')
+    {
+        return self::correctedList(self::$app, $keyWord);
+    }
+
 
     /**
      * 获取搜索结果
@@ -217,6 +254,17 @@ class XunSearch extends XS
 
         }
         return $result;
+    }
+
+    /**
+     * @param string $keyWord
+     * @param array $filter
+     * @return array
+     * @throws XSException
+     */
+    public function getList($keyWord = '', $filter = array())
+    {
+        return self::listing(self::$app, $keyWord, $filter);
     }
 
     /**
@@ -286,6 +334,17 @@ class XunSearch extends XS
     }
 
     /**
+     * @param $key
+     * @param string $field
+     * @return bool
+     * @throws XSException
+     */
+    public function delete($key, $field = '')
+    {
+        return self::del(self::$app, $key, $field);
+    }
+
+    /**
      * 立即删除
      *
      * @param string $app 项目名称
@@ -300,6 +359,16 @@ class XunSearch extends XS
     }
 
     /**
+     * @param $key
+     * @param string $field
+     * @throws XSException
+     */
+    public function flushDelete($key, $field = '')
+    {
+        self::flushDel($key, $field = '');
+    }
+
+    /**
      * 清空索引
      *
      * @param string $app 项目名称
@@ -308,6 +377,11 @@ class XunSearch extends XS
     {
         $index = self::index($app);
         $index->clean();
+    }
+
+    public function cleanAll()
+    {
+        self::clean(self::$app);
     }
 
     /**
@@ -324,7 +398,7 @@ class XunSearch extends XS
      * @return bool
      * @throws XSException
      */
-    public static function store($app = '', $data = array(), $option = array())
+    public static function store($app = '', $data, $option = array())
     {
         if (is_array($data) && !empty($data)) {
             $fields = self::getFields($app);
@@ -376,9 +450,6 @@ class XunSearch extends XS
                     self::flush();
                 }
 
-                unset($data[$priKey]);
-                self::training($data);
-
                 /**
                  * 关闭缓冲区
                  */
@@ -390,6 +461,17 @@ class XunSearch extends XS
         } else {
             self::errorMsg(5);
         }
+    }
+
+    /**
+     * @param array $data
+     * @param array $option
+     * @return bool
+     * @throws XSException
+     */
+    public function save($data, $option = array())
+    {
+        return self::store(self::$app, $data, $option);
     }
 
     /**
@@ -451,7 +533,7 @@ class XunSearch extends XS
     }
 
     /**
-     * 刷新日志
+     * 刷新日志(静态)
      *
      * @param string $app
      */
@@ -459,6 +541,14 @@ class XunSearch extends XS
     {
         $app = self::getApp($app);
         self::index($app)->flushLogging();
+    }
+
+    /**
+     * 刷新日志
+     */
+    public function logFlush()
+    {
+        self::flushLog(self::$app);
     }
 
     /**
@@ -470,6 +560,14 @@ class XunSearch extends XS
     {
         $app = self::getApp($app);
         self::index($app)->flushIndex();
+    }
+
+    /**
+     * 立即刷新
+     */
+    public function appFlush()
+    {
+        self::flush(self::$app);
     }
 
     public static function openBuffer($size = '')
