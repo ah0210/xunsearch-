@@ -111,6 +111,13 @@ class XunSearch extends XS
                 $list = self::search()->$func($keyWords);
             }
             return $list;
+        } else if (in_array($name, array('doc'))){
+            switch ($name) {
+                case 'doc':
+                    $object = new XSDocument();
+                    break;
+            }
+            return $object;
         } else {
             self::errorMsg(2);
         }
@@ -486,7 +493,6 @@ class XunSearch extends XS
         if (is_string($keyword)) {
             $keyword = self::setArray($keyword);
         }
-
         foreach ($keyword as $word) {
             for ($i = 0; $i <= 50; $i++) {
                 self::listing($app, $word);
