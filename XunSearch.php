@@ -688,6 +688,9 @@ class XunSearch extends XS
             $dir = 'd:/XunSearch.log';
         } else {
             $dir = '/home/XunSearch/XunSearch.log';
+            if (!is_dir('/home/XunSearch/')) {
+                mkdir('/home/XunSearch/',0666);
+            }
         }
         $fp = fopen($dir, 'a');
         $message = date('Y-m-d H:i:s') . '--' . $info . '--' . $type . '--' . $content . "\r\n";
