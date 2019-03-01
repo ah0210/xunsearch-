@@ -54,19 +54,15 @@ class XunSearch extends XS
      *
      * @param string $app 项目名称
      * @return mixed
-     * @throws XSException
      */
     public static function instance($app = '')
     {
-        try {
-            if (!isset(self::$xs[$app])) {
-                self::$xs[$app] = new self($app);
-            }
-            self::$app = $app;
-            return self::$xs[$app];
-        } catch (XSException $e) {
-            self::errorMsg(1);
+        if (!isset(self::$xs[$app])) {
+            self::$xs[$app] = new self($app);
         }
+        self::$app = $app;
+        return self::$xs[$app];
+
     }
 
     public static function getApp($app = '')
@@ -78,7 +74,6 @@ class XunSearch extends XS
      * @param $name
      * @param $arguments
      * @return mixed
-     * @throws XSException
      */
     public static function __callStatic($name, $arguments)
     {
@@ -111,7 +106,7 @@ class XunSearch extends XS
                 $list = self::search()->$func($keyWords);
             }
             return $list;
-        } else if (in_array($name, array('doc'))){
+        } else if (in_array($name, array('doc'))) {
             switch ($name) {
                 case 'doc':
                     $object = new XSDocument();
@@ -119,7 +114,7 @@ class XunSearch extends XS
             }
             return $object;
         } else {
-            self::errorMsg(2);
+            return self::errorMsg(2);
         }
     }
 
@@ -215,7 +210,6 @@ class XunSearch extends XS
      * @param  string $keyWord 搜索关键字
      * @param  array $filter 搜索过滤规则
      * @return array 返回数据结果和总数
-     * @throws XSException
      */
     public static function listing($app = '', $keyWord = '', $filter = array())
     {
@@ -231,6 +225,9 @@ class XunSearch extends XS
                     $result['list'][$k][$field] = $v->$field;
                 }
                 $result['list'][$k]['percent'] = $v->percent() . '%';
+                $result['list'][$k]['rank'] = $v->rank();
+                $result['list'][$k]['weight'] = $v->weight();
+                $result['list'][$k]['ccount'] = $v->ccount();
             }
         }
         $result['count'] = $search->getLastCount();
@@ -267,7 +264,6 @@ class XunSearch extends XS
      * @param string $keyWord
      * @param array $filter
      * @return array
-     * @throws XSException
      */
     public function getList($keyWord = '', $filter = array())
     {
@@ -310,6 +306,14 @@ class XunSearch extends XS
                 case "cutOf" :
                     $search->setCutOff($v);
                     break;
+                case "weight" :
+                    if (is_string($filter['weight'])) {
+                        $weight = self::setArray($filter['weight']);
+                    } else {
+                        $weight = $filter['weight'];
+                    }
+                    list($fields, $keyWord) = $weight;
+                    $search->addWeight($fields, $keyWord);
             }
         }
     }
@@ -321,7 +325,6 @@ class XunSearch extends XS
      * @param array|string $key 删除的键值 array('123',456)|$str = '123,456';
      * @param string $field 指定字段(按照配置文件字段指定)
      * @return bool 正确返回true
-     * @throws XSException
      */
     public static function del($app = '', $key, $field = '')
     {
@@ -334,7 +337,7 @@ class XunSearch extends XS
             if (in_array($field, $fields)) {
                 $index->del($keyArr, $field);
             } else {
-                self::errorMsg(3);
+                return self::errorMsg(3);
             }
         }
         return true;
@@ -357,7 +360,6 @@ class XunSearch extends XS
      * @param string $app 项目名称
      * @param array|string $key 删除的键值 array('123',456)|$str = '123,456';
      * @param string $field 指定字段(按照配置文件字段指定)
-     * @throws XSException
      */
     public static function flushDel($app = '', $key, $field = '')
     {
@@ -368,7 +370,6 @@ class XunSearch extends XS
     /**
      * @param $key
      * @param string $field
-     * @throws XSException
      */
     public function flushDelete($key, $field = '')
     {
@@ -403,7 +404,6 @@ class XunSearch extends XS
      *     add 强制使用增加方法
      *     default 自动判断
      * @return bool
-     * @throws XSException
      */
     public static function store($app = '', $data, $option = array())
     {
@@ -411,7 +411,7 @@ class XunSearch extends XS
             $fields = self::getFields($app);
             $diff = array_diff_key($fields, $data);
             if (empty($diff)) {
-                $doc = new XSDocument();
+                $doc = self::doc();
                 $index = self::index();
                 $doc->setFields($data);
 
@@ -449,7 +449,7 @@ class XunSearch extends XS
                             }
                             $index->$func($doc);
                         } else {
-                            self::errorMsg(5);
+                            return self::errorMsg(5);
                         }
                         break;
                 }
@@ -463,10 +463,10 @@ class XunSearch extends XS
                 self::closeBuffer();
                 return true;
             } else {
-                self::errorMsg(4);
+                return self::errorMsg(4);
             }
         } else {
-            self::errorMsg(5);
+            return self::errorMsg(5);
         }
     }
 
@@ -474,7 +474,6 @@ class XunSearch extends XS
      * @param array $data
      * @param array $option
      * @return bool
-     * @throws XSException
      */
     public function save($data, $option = array())
     {
@@ -484,21 +483,28 @@ class XunSearch extends XS
     /**
      * 索引训练
      *
+     * @param $app
      * @param $keyword
-     * @throws XSException
+     * @return int
      */
-    public static function training($keyword)
+    public static function training($app, $keyword)
     {
-        $app = self::getApp();
+        set_time_limit(3000);
+        $app = self::getApp($app);
         if (is_string($keyword)) {
+            $keyword = rtrim($keyword, ',');
+            file_put_contents('d:/search.log', $keyword . "\r\n", FILE_APPEND);
             $keyword = self::setArray($keyword);
         }
+        $search = self::search($app);
         foreach ($keyword as $word) {
             for ($i = 0; $i <= 50; $i++) {
-                self::listing($app, $word);
+
+                $search->search($word);
             }
         }
         self::flushLog();
+        set_time_limit(ini_get('max_execution_time'));
     }
 
     /**
@@ -507,7 +513,6 @@ class XunSearch extends XS
      * @param string $app 项目名称
      * @param string $type 想要获取的字段类型(id,body,title),默认获取全部
      * @return array|string $fieldList
-     * @throws XSException
      */
     public static function getFields($app = '', $type = '')
     {
@@ -528,7 +533,7 @@ class XunSearch extends XS
                 if (is_object($xun->$func)) {
                     $fieldList[$xun->$func->name] = $xun->$func->name;
                 } else {
-                    self::errorMsg(6, array('field' => $field));
+                    return self::errorMsg(6, array('field' => $field));
                 }
             }
             if (count($fieldList) == 1) {
@@ -612,7 +617,7 @@ class XunSearch extends XS
      *
      * @param int $code
      * @param array $ext
-     * @throws XSException
+     * @return string
      */
     protected static function errorMsg($code = 0, $ext = array())
     {
@@ -636,7 +641,7 @@ class XunSearch extends XS
                 $msg = '没有' . $ext['field'] . '字段';
                 break;
         }
-        throw new XSException($msg);
-        exit;
+        //throw new XSException($msg);
+        return $msg;
     }
 }
