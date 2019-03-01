@@ -252,7 +252,7 @@ class XunSearch extends XS
                     self::listing($app, $word, $filter)
                 );
             }
-            self::log($keyWord,'SEARCH');
+            self::log($keyWord, 'SEARCH');
             return $result;
         } else {
             return self::errorMsg(7);
@@ -463,7 +463,7 @@ class XunSearch extends XS
                  * 关闭缓冲区
                  */
                 self::closeBuffer();
-                self::log($priKey.':'.$data[$priKey],strtoupper($method));
+                self::log($priKey . ':' . $data[$priKey], strtoupper($method));
                 return true;
             } else {
                 return self::errorMsg(4);
@@ -486,21 +486,19 @@ class XunSearch extends XS
     /**
      * 索引训练
      *
-     * @param $app
-     * @param $keyword
+     * @param string $app 项目名称
+     * @param array|string $keyword 训练词组|字符串形式用','分割
      */
-    public static function training($app, $keyword)
+    public static function training($app = '', $keyword = array())
     {
         set_time_limit(3000);
         $app = self::getApp($app);
         if (is_string($keyword)) {
-            $keyword = rtrim($keyword, ',');
-            $keyword = self::setArray($keyword);
+            $keyword = self::setArray(rtrim($keyword, ','));
         }
         $search = self::search($app);
         foreach ($keyword as $word) {
             for ($i = 0; $i <= 50; $i++) {
-
                 $search->search($word);
             }
         }
@@ -509,7 +507,7 @@ class XunSearch extends XS
     }
 
     /**
-     * 获取所以字段名称
+     * 获取字段名称
      *
      * @param string $app 项目名称
      * @param string $type 想要获取的字段类型(id,body,title),默认获取全部
@@ -614,7 +612,7 @@ class XunSearch extends XS
     }
 
     /**
-     * 抛出异常
+     * 错误信息
      *
      * @param int $code
      * @param array $ext
