@@ -80,9 +80,13 @@ class XunSearch extends XS
         $appParam = !empty($arguments[0]) ? $arguments[0] : '';
         $app = self::getApp($appParam);
         $xun = self::instance($app);
-        if (in_array($name, array('search', 'index'))) {
+        if (in_array($name, array('search', 'index', 'scws'))) {
             if (!isset(self::$ojb[$app][$name])) {
-                self::$ojb[$app][$name] = $xun->$name;
+                if ($name == 'scws') {
+                    self::$ojb[$app][$name] = new XSTokenizerScws();
+                } else {
+                    self::$ojb[$app][$name] = $xun->$name;
+                }
             }
             return self::$ojb[$app][$name];
         } else if (in_array($name, array('hot', 'suggest', 'related', 'corrected'))) {
@@ -215,6 +219,7 @@ class XunSearch extends XS
         $fields = self::getFields();
         $result = array();
         if (is_array($fields) && !empty($fields)) {
+            self::flushLog();
             self::parseFilter($filter);
             $searchList = $search->search(null, false);
             foreach ($searchList as $k => $v) {
@@ -246,13 +251,17 @@ class XunSearch extends XS
                     $word = $result['corrected'][0];
                 } else if (!empty($result['suggest'])) {
                     $word = $result['suggest'][0];
+                } else {
+                    //都没有结果直接返回空
+                    self::log($keyWord, 'SEARCH', $result['count']);
+                    return $result;
                 }
                 $result = array_merge(
                     $result,
                     self::listing($app, $word, $filter)
                 );
             }
-            self::log($keyWord, 'SEARCH');
+            self::log($keyWord, 'SEARCH', $result['count']);
             return $result;
         } else {
             return self::errorMsg(7);
@@ -484,26 +493,59 @@ class XunSearch extends XS
     }
 
     /**
+     * 分词
+     *
+     * @param string $app 项目名称
+     * @param string $words 关键词
+     * @return string ,分割的结果
+     */
+    public static function getScwsWord($app = '', $words = '')
+    {
+        if (func_num_args() == 1) {
+            $words = $app;
+            $app = self::getApp();
+        } else {
+            $app = self::getApp($app);
+        }
+        $scws = self::scws($app);
+        $wordArr = $scws->getResult($words);
+        $wordStr = '';
+        foreach ($wordArr as $word) {
+            $wordStr .= $word['word'] . ',';
+        }
+        return $wordStr;
+    }
+
+    /**
      * 索引训练
      *
      * @param string $app 项目名称
-     * @param array|string $keyword 训练词组|字符串形式用','分割
+     * @param string $keyword 关键词
+     * @return bool
      */
-    public static function training($app = '', $keyword = array())
+    public static function training($app = '', $keyword = '')
     {
         set_time_limit(3000);
         $app = self::getApp($app);
-        if (is_string($keyword)) {
-            $keyword = self::setArray(rtrim($keyword, ','));
-        }
+        $keyword = self::getScwsWord($app, $keyword);
+        $wordArr = self::setArray(rtrim($keyword, ','));
         $search = self::search($app);
-        foreach ($keyword as $word) {
+        foreach ($wordArr as $word) {
             for ($i = 0; $i <= 50; $i++) {
-                $search->search($word);
+                $search->setQuery($word);
+                $search->search(null, false);
+                self::log($word, 'SEARCH', $search->getLastCount());
             }
+            self::flushLog();
+        }
+        $keyword = str_replace(',', '', $keyword);
+        for ($j = 0; $j <= 50; $j++) {
+            $search->search($keyword);
+            self::log($keyword, 'SEARCH', $search->getLastCount());
         }
         self::flushLog();
         set_time_limit(ini_get('max_execution_time'));
+        return true;
     }
 
     /**
@@ -550,6 +592,7 @@ class XunSearch extends XS
     public static function flushLog($app = '')
     {
         $app = self::getApp($app);
+        self::log('flush', 'FLUSH');
         self::index($app)->flushLogging();
     }
 
@@ -648,7 +691,7 @@ class XunSearch extends XS
         return $msg;
     }
 
-    private static function log($info, $type)
+    private static function log($info, $type, $content = '')
     {
         if (PHP_OS == 'WINNT') {
             $dir = 'd:/XunSearch.log';
@@ -656,7 +699,7 @@ class XunSearch extends XS
             $dir = '/home/XunSearch/XunSearch.log';
         }
         $fp = fopen($dir, 'a');
-        $message = date('Y-m-d H:i:s') . '--' . $info . '--' . $type . "\r\n";
+        $message = date('Y-m-d H:i:s') . '--' . $info . '--' . $type . '--' . $content . "\r\n";
         fwrite($fp, $message);
         fclose($fp);
     }
