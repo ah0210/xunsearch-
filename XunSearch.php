@@ -73,7 +73,8 @@ class XunSearch extends XS
     /**
      * @param $name
      * @param $arguments
-     * @return mixed
+     * @return string|XSDocument
+     * @throws XSException
      */
     public static function __callStatic($name, $arguments)
     {
@@ -525,26 +526,16 @@ class XunSearch extends XS
      */
     public static function training($app = '', $keyword = '')
     {
-        set_time_limit(3000);
         $app = self::getApp($app);
         $keyword = self::getScwsWord($app, $keyword);
         $wordArr = self::setArray(rtrim($keyword, ','));
         $search = self::search($app);
         foreach ($wordArr as $word) {
-            for ($i = 0; $i <= 50; $i++) {
-                $search->setQuery($word);
-                $search->search(null, false);
-                self::log($word, 'SEARCH', $search->getLastCount());
-            }
-            self::flushLog();
+            $search->addSearchLog($word,50);
         }
         $keyword = str_replace(',', '', $keyword);
-        for ($j = 0; $j <= 50; $j++) {
-            $search->search($keyword);
-            self::log($keyword, 'SEARCH', $search->getLastCount());
-        }
+        $search->addSearchLog($keyword,50);
         self::flushLog();
-        set_time_limit(ini_get('max_execution_time'));
         return true;
     }
 
