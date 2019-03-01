@@ -202,14 +202,11 @@ class XunSearch extends XS
         return self::correctedList(self::$app, $keyWord);
     }
 
-
     /**
      * 获取搜索结果
-     *
-     * @param  string $app 项目名称
-     * @param  string $keyWord 搜索关键字
-     * @param  array $filter 搜索过滤规则
-     * @return array 返回数据结果和总数
+     * @param string $app 项目名称
+     * @param string $keyWord 搜索关键字
+     * @return array|string 返回数据结果和总数|错误信息
      */
     public static function listing($app = '', $keyWord = '', $filter = array())
     {
@@ -229,35 +226,37 @@ class XunSearch extends XS
                 $result['list'][$k]['weight'] = $v->weight();
                 $result['list'][$k]['ccount'] = $v->ccount();
             }
-        }
-        $result['count'] = $search->getLastCount();
-        if ($result['count'] == 0) {
-            //搜索纠错
-            $result['corrected'] = self::corrected($app, $keyWord);
-            //搜索建议
-            $result['suggest'] = self::suggest($app, $keyWord);
-            //热门搜索
-            //$result['hot'] = self::hot($app,$keyWord);
-            //相关搜索
-            //$result['related'] = self::related($app, $keyWord);
-            $result['result'] = 0;
+            $result['count'] = $search->getLastCount();
+            if ($result['count'] == 0) {
+                //搜索纠错
+                $result['corrected'] = self::corrected($app, $keyWord);
+                //搜索建议
+                $result['suggest'] = self::suggest($app, $keyWord);
+                //热门搜索
+                //$result['hot'] = self::hot($app,$keyWord);
+                //相关搜索
+                //$result['related'] = self::related($app, $keyWord);
+                $result['result'] = 0;
 
-            /**
-             * 如果没搜到结果,按照建议词的第一个或者纠错第一个
-             */
-            /*$word = '';
-            if (!empty($result['suggest'])) {
-                $word = $result['suggest'][0];
-            } else if (!empty($result['corrected'])) {
-                $word = $result['corrected'][0];
+                /**
+                 * 如果没搜到结果,按照建议词的第一个或者纠错第一个
+                 */
+                $word = '';
+                if (!empty($result['corrected'])) {
+                    $word = $result['corrected'][0];
+                } else if (!empty($result['suggest'])) {
+                    $word = $result['suggest'][0];
+                }
+                $result = array_merge(
+                    $result,
+                    self::listing($app, $word, $filter)
+                );
             }
-            $result = array_merge(
-                $result,
-                self::listing($app, $word, $filter)
-            );*/
-
+            self::log($keyWord,'SEARCH');
+            return $result;
+        } else {
+            return self::errorMsg(7);
         }
-        return $result;
     }
 
     /**
@@ -279,6 +278,7 @@ class XunSearch extends XS
      *   fuzzy 模糊查询
      *   charset 字符集
      *   cutOf 过滤(以下的)值
+     *   addWeight 增加权重
      */
     public static function parseFilter($filter = array())
     {
@@ -347,7 +347,6 @@ class XunSearch extends XS
      * @param $key
      * @param string $field
      * @return bool
-     * @throws XSException
      */
     public function delete($key, $field = '')
     {
@@ -387,6 +386,9 @@ class XunSearch extends XS
         $index->clean();
     }
 
+    /**
+     * 清空索引
+     */
     public function cleanAll()
     {
         self::clean(self::$app);
@@ -461,6 +463,7 @@ class XunSearch extends XS
                  * 关闭缓冲区
                  */
                 self::closeBuffer();
+                self::log($priKey.':'.$data[$priKey],strtoupper($method));
                 return true;
             } else {
                 return self::errorMsg(4);
@@ -485,7 +488,6 @@ class XunSearch extends XS
      *
      * @param $app
      * @param $keyword
-     * @return int
      */
     public static function training($app, $keyword)
     {
@@ -493,7 +495,6 @@ class XunSearch extends XS
         $app = self::getApp($app);
         if (is_string($keyword)) {
             $keyword = rtrim($keyword, ',');
-            file_put_contents('d:/search.log', $keyword . "\r\n", FILE_APPEND);
             $keyword = self::setArray($keyword);
         }
         $search = self::search($app);
@@ -640,8 +641,25 @@ class XunSearch extends XS
             case 6:
                 $msg = '没有' . $ext['field'] . '字段';
                 break;
+            case 7:
+                $msg = '字段不存在';
+                break;
         }
         //throw new XSException($msg);
+        self::log($msg, 'ERROR');
         return $msg;
+    }
+
+    private static function log($info, $type)
+    {
+        if (PHP_OS == 'WINNT') {
+            $dir = 'd:/XunSearch.log';
+        } else {
+            $dir = '/home/XunSearch/XunSearch.log';
+        }
+        $fp = fopen($dir, 'a');
+        $message = date('Y-m-d H:i:s') . '--' . $info . '--' . $type . "\r\n";
+        fwrite($fp, $message);
+        fclose($fp);
     }
 }
