@@ -209,19 +209,21 @@ class XunSearch extends XS
 
     /**
      * 获取搜索结果
+     *
      * @param string $app 项目名称
      * @param string $keyWord 搜索关键字
+     * @param array $filter 过滤规则
      * @return array|string 返回数据结果和总数|错误信息
      */
     public static function listing($app = '', $keyWord = '', $filter = array())
     {
         $search = self::search($app);
-        $search->setQuery($keyWord);
         $fields = self::getFields();
         $result = array();
         if (is_array($fields) && !empty($fields)) {
             self::flushLog();
             self::parseFilter($filter);
+            $search->setQuery($keyWord);
             $searchList = $search->search(null, false);
             foreach ($searchList as $k => $v) {
                 foreach ($fields as $field) {
@@ -474,13 +476,14 @@ class XunSearch extends XS
                  */
                 self::closeBuffer();
 
+                self::log($priKey . ':' . $data[$priKey], strtoupper($method));
+
                 /**
                  * 加入搜索日志
                  */
                 unset($data[$priKey]);
                 self::training($app, $data);
 
-                self::log($priKey . ':' . $data[$priKey], strtoupper($method));
                 return true;
             } else {
                 return self::errorMsg(4);
@@ -505,9 +508,10 @@ class XunSearch extends XS
      *
      * @param string $app 项目名称
      * @param string $words 关键词
-     * @return string ,分割的结果
+     * @param string $delimiter 分隔符
+     * @return string 以分隔符分割的结果
      */
-    public static function getScwsWord($app = '', $words = '')
+    public static function getScwsWord($app = '', $words = '', $delimiter = ',')
     {
         if (func_num_args() == 1) {
             $words = $app;
@@ -519,9 +523,9 @@ class XunSearch extends XS
         $wordArr = $scws->getResult($words);
         $wordStr = '';
         foreach ($wordArr as $word) {
-            $wordStr .= $word['word'] . ',';
+            $wordStr .= $word['word'] . $delimiter;
         }
-        return rtrim($wordStr, ',');
+        return rtrim($wordStr, $delimiter);
     }
 
     /**
@@ -548,9 +552,11 @@ class XunSearch extends XS
             //加入搜索日志
             $search->addSearchLog($word, 50);
         }
+        self::log($keyword, 'TRAIN');
         $keyword = str_replace(',', '', $keyword);
         $search->addSearchLog($keyword, 50);
         self::flushLog();
+
         return true;
     }
 
