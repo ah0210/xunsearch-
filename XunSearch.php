@@ -256,7 +256,7 @@ class XunSearch extends XS
                     $word = $result['suggest'][0];
                 } else {
                     //都没有结果直接返回空
-                    self::log($keyWord, 'SEARCH', $result['count']);
+                    self::log($search->getQuery($keyWord), 'SEARCH', $result['count']);
                     return $result;
                 }
                 $result = array_merge(
@@ -264,7 +264,7 @@ class XunSearch extends XS
                     self::listing($app, $word, $filter)
                 );
             }
-            self::log($keyWord, 'SEARCH', $result['count']);
+            self::log($search->getQuery($keyWord) , 'SEARCH', $result['count']);
             return $result;
         } else {
             return self::errorMsg(7);
