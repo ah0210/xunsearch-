@@ -473,6 +473,13 @@ class XunSearch extends XS
                  * 关闭缓冲区
                  */
                 self::closeBuffer();
+
+                /**
+                 * 加入搜索日志
+                 */
+                unset($data[$priKey]);
+                self::training($app, $data);
+
                 self::log($priKey . ':' . $data[$priKey], strtoupper($method));
                 return true;
             } else {
@@ -514,27 +521,35 @@ class XunSearch extends XS
         foreach ($wordArr as $word) {
             $wordStr .= $word['word'] . ',';
         }
-        return $wordStr;
+        return rtrim($wordStr, ',');
     }
 
     /**
      * 索引训练
      *
      * @param string $app 项目名称
-     * @param string $keyword 关键词
+     * @param string|array $keyword 关键词
      * @return bool
      */
-    public static function training($app = '', $keyword = '')
+    public static function training($app = '', $keyword)
     {
         $app = self::getApp($app);
+        if (is_array($keyword)) {
+            $words = '';
+            foreach ($keyword as $value) {
+                $words .= $value;
+            }
+            $keyword = $words;
+        }
         $keyword = self::getScwsWord($app, $keyword);
-        $wordArr = self::setArray(rtrim($keyword, ','));
+        $wordArr = self::setArray($keyword);
         $search = self::search($app);
         foreach ($wordArr as $word) {
-            $search->addSearchLog($word,50);
+            //加入搜索日志
+            $search->addSearchLog($word, 50);
         }
         $keyword = str_replace(',', '', $keyword);
-        $search->addSearchLog($keyword,50);
+        $search->addSearchLog($keyword, 50);
         self::flushLog();
         return true;
     }
@@ -689,7 +704,7 @@ class XunSearch extends XS
         } else {
             $dir = '/home/XunSearch/XunSearch.log';
             if (!is_dir('/home/XunSearch/')) {
-                mkdir('/home/XunSearch/',0666);
+                mkdir('/home/XunSearch/', 0666);
             }
         }
         $fp = fopen($dir, 'a');
