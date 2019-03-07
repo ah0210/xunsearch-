@@ -264,7 +264,7 @@ class XunSearch extends XS
                     self::listing($app, $word, $filter)
                 );
             }
-            self::log($search->getQuery($keyWord) , 'SEARCH', $result['count']);
+            self::log($search->getQuery($keyWord), 'SEARCH', $result['count']);
             return $result;
         } else {
             return self::errorMsg(7);
@@ -298,6 +298,7 @@ class XunSearch extends XS
             'num' => 100,
             'offset' => 0,
             'charset' => 'utf-8',
+            'synonyms' => true,
         ), $filter);
         $search = self::search();
         foreach ($filter as $k => $v) {
@@ -317,6 +318,9 @@ class XunSearch extends XS
                     break;
                 case "cutOf" :
                     $search->setCutOff($v);
+                    break;
+                case "synonyms" :
+                    $search->setAutoSynonyms();
                     break;
                 case "weight" :
                     if (is_string($filter['weight'])) {
@@ -503,6 +507,27 @@ class XunSearch extends XS
         return self::store(self::$app, $data, $option);
     }
 
+
+    /**
+     * 创建索引
+     *
+     * @param $app
+     * @param array $list
+     */
+    public static function createIndex($app, $list = array())
+    {
+        $app = self::getApp($app);
+        $index = self::index($app);
+        $doc = self::doc();
+        $index->openBuffer(10);
+        foreach ($list as $value) {
+            $doc->setFields($value);
+            $index->add($doc);
+        }
+        $index->closeBuffer();
+        $index->flushIndex();
+    }
+
     /**
      * 分词
      *
@@ -526,6 +551,33 @@ class XunSearch extends XS
             $wordStr .= $word['word'] . $delimiter;
         }
         return rtrim($wordStr, $delimiter);
+    }
+
+    /**
+     * 近义词操作
+     *
+     * @param $app
+     * @param $synonym
+     * @param string $method
+     * @return bool
+     */
+    public static function synonym($app, $synonym, $method = 'add')
+    {
+        $app = self::getApp($app);
+        $fun = $method . 'Synonym';
+        $index = self::index($app);
+        if (is_string($synonym)) {
+            $synonym = self::setArray($synonym);
+        }
+        if (count($synonym) > 1 && $method != 'del') {
+            list($word1, $word2) = $synonym;
+            $index->$fun($word1, $word2);
+            $index->$fun($word2, $word1);
+        } else {
+            $index->$fun($synonym);
+        }
+        self::flush();
+        return true;
     }
 
     /**
