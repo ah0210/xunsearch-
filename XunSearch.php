@@ -90,7 +90,7 @@ class XunSearch extends XS
                 }
             }
             return self::$ojb[$app][$name];
-        } else if (in_array($name, array('hot', 'suggest', 'related', 'corrected'))) {
+        } else if (in_array($name, array('hot', 'suggest', 'related', 'corrected', 'AllSynonyms'))) {
             switch ($name) {
                 case 'hot':   //no break
                 case 'corrected':   //no break
@@ -100,15 +100,21 @@ class XunSearch extends XS
                 case 'suggest':
                     $func = 'getExpandedQuery';
                     break;
+                case 'AllSynonyms':
+                    $func = 'getAllSynonyms';
+                    break;
                 default:
                     $func = 'getCorrectedQuery';
                     break;
             }
             $keyWords = $arguments[1];
+            $limit = !empty($arguments[2]) ? $arguments[2] : 5;
             if ($name == 'related') {
-                $list = self::search()->$func($keyWords);
+                $list = self::search()->$func($keyWords, $limit);
+            } else if ($name == 'AllSynonyms') {
+                $list = self::search()->$func();
             } else {
-                $list = self::search()->$func($keyWords);
+                $list = self::search()->$func($keyWords, $limit);
             }
             return $list;
         } else if (in_array($name, array('doc'))) {
@@ -237,9 +243,9 @@ class XunSearch extends XS
             $result['count'] = $search->getLastCount();
             if ($result['count'] == 0) {
                 //搜索纠错
-                $result['corrected'] = self::corrected($app, $keyWord);
+                $result['corrected'] = self::corrected($app, $keyWord, 5);
                 //搜索建议
-                $result['suggest'] = self::suggest($app, $keyWord);
+                $result['suggest'] = self::suggest($app, $keyWord, 5);
                 //热门搜索
                 //$result['hot'] = self::hot($app,$keyWord);
                 //相关搜索
@@ -290,6 +296,7 @@ class XunSearch extends XS
      *   fuzzy 模糊查询
      *   charset 字符集
      *   cutOf 过滤(以下的)值
+     *   synonyms 开启同义词
      *   addWeight 增加权重
      */
     public static function parseFilter($filter = array())
@@ -320,7 +327,7 @@ class XunSearch extends XS
                     $search->setCutOff($v);
                     break;
                 case "synonyms" :
-                    $search->setAutoSynonyms();
+                    $search->setAutoSynonyms($v);
                     break;
                 case "weight" :
                     if (is_string($filter['weight'])) {
@@ -520,9 +527,12 @@ class XunSearch extends XS
         $index = self::index($app);
         $doc = self::doc();
         $index->openBuffer(10);
+        $priKey = self::getFields($app, 'id');
         foreach ($list as $value) {
             $doc->setFields($value);
             $index->add($doc);
+            unset($value[$priKey]);
+            self::training($app, $value);
         }
         $index->closeBuffer();
         $index->flushIndex();
@@ -577,6 +587,7 @@ class XunSearch extends XS
             $index->$fun($synonym);
         }
         self::flush();
+        self::flushLog();
         return true;
     }
 
@@ -597,14 +608,14 @@ class XunSearch extends XS
             }
             $keyword = $words;
         }
-        $keyword = self::getScwsWord($app, $keyword);
-        $wordArr = self::setArray($keyword);
+        $keyScwsWord = self::getScwsWord($app, $keyword);
+        $wordArr = self::setArray($keyScwsWord);
         $search = self::search($app);
         foreach ($wordArr as $word) {
             //加入搜索日志
             $search->addSearchLog($word, 50);
         }
-        self::log($keyword, 'TRAIN');
+        self::log($keyScwsWord, 'TRAIN');
         $keyword = str_replace(',', '', $keyword);
         $search->addSearchLog($keyword, 50);
         self::flushLog();
@@ -669,7 +680,29 @@ class XunSearch extends XS
     }
 
     /**
-     * 立即刷新
+     * 删除日志词汇记录
+     *
+     * @param string $app 项目名称
+     * @param array $logWord 日志词汇
+     * @return bool
+     */
+    public static function delLog($app = '', $logWord = array())
+    {
+        $app = self::getApp($app);
+        $search = self::search($app);
+        $index = self::index($app);
+        if (is_string($logWord)) {
+            $logWord = self::setArray($logWord);
+        }
+        foreach ($logWord as $value) {
+            $index->setDb($search::LOG_DB)->del($value);
+        };
+        $index->flushLogging();
+        return true;
+    }
+
+    /**
+     * 立即刷新索引
      *
      * @param string $app
      */
@@ -680,7 +713,7 @@ class XunSearch extends XS
     }
 
     /**
-     * 立即刷新
+     * 立即刷新索引
      */
     public function appFlush()
     {
