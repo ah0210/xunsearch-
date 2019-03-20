@@ -1,6 +1,7 @@
 <?php
 require dirname(__FILE__) . '/lib/XS.php';
 
+
 /**
  * Class XunSearch 迅搜 扩展类
  *
@@ -62,7 +63,6 @@ class XunSearch extends XS
         }
         self::$app = $app;
         return self::$xs[$app];
-
     }
 
     public static function getApp($app = '')
@@ -71,6 +71,8 @@ class XunSearch extends XS
     }
 
     /**
+     * 魔术方法 支持:search index scws hot suggest related corrected AllSynonyms doc
+     *
      * @param $name
      * @param $arguments
      * @return string|XSDocument
@@ -352,13 +354,15 @@ class XunSearch extends XS
     public static function del($app = '', $key, $field = '')
     {
         $index = self::index($app);
-        $keyArr = self::setArray($key);
+        if (is_string($key)) {
+            $key = self::setArray($key);
+        }
         if (empty($field)) {
-            $index->del($keyArr);
+            $index->del($key);
         } else {
             $fields = self::getFields();
             if (in_array($field, $fields)) {
-                $index->del($keyArr, $field);
+                $index->del($key, $field);
             } else {
                 return self::errorMsg(3);
             }
@@ -526,7 +530,7 @@ class XunSearch extends XS
         $app = self::getApp($app);
         $index = self::index($app);
         $doc = self::doc();
-        $index->openBuffer(10);
+        $index->openBuffer(4);
         $priKey = self::getFields($app, 'id');
         foreach ($list as $value) {
             $doc->setFields($value);
@@ -576,15 +580,34 @@ class XunSearch extends XS
         $app = self::getApp($app);
         $fun = $method . 'Synonym';
         $index = self::index($app);
-        if (is_string($synonym)) {
-            $synonym = self::setArray($synonym);
-        }
-        if (count($synonym) > 1 && $method != 'del') {
-            list($word1, $word2) = $synonym;
-            $index->$fun($word1, $word2);
-            $index->$fun($word2, $word1);
+        if ($method != 'del') {
+            $strFlag = false;
+            if (is_string($synonym)) {
+                $strFlag = true;
+                $synonym = self::setArray($synonym);
+            }
+            if (!$strFlag && is_array($synonym)) {
+                if (strrpos($synonym[0], ',') === false) {
+                    list($word1, $word2) = $synonym;
+                    $index->$fun($word1, $word2);
+                } else {
+                    foreach ($synonym as $words) {
+                        $synonym = self::setArray($words);
+                        list($word1, $word2) = $synonym;
+                        $index->$fun($word1, $word2);
+                    }
+                }
+            } else {
+                list($word1, $word2) = $synonym;
+                $index->$fun($word1, $word2);
+            }
         } else {
-            $index->$fun($synonym);
+            if (is_string($synonym)) {
+                $synonym = self::setArray($synonym);
+            }
+            foreach ($synonym as $words) {
+                $index->$fun($words);
+            }
         }
         self::flush();
         self::flushLog();
@@ -683,7 +706,7 @@ class XunSearch extends XS
      * 删除日志词汇记录
      *
      * @param string $app 项目名称
-     * @param array $logWord 日志词汇
+     * @param array|string $logWord 日志词汇
      * @return bool
      */
     public static function delLog($app = '', $logWord = array())
@@ -696,7 +719,7 @@ class XunSearch extends XS
         }
         foreach ($logWord as $value) {
             $index->setDb($search::LOG_DB)->del($value);
-        };
+        }
         $index->flushLogging();
         return true;
     }
@@ -738,15 +761,15 @@ class XunSearch extends XS
     }
 
     /**
-     * 按','分割成数组
-     *
-     * @param string $value
-     * @return array|string
+     * 分割成数组
+     * @param $value
+     * @param string $delimit
+     * @return array
      */
-    protected static function setArray($value = '')
+    protected static function setArray($value, $delimit = ',')
     {
         if (is_string($value) && !empty($value)) {
-            $value = explode(',', $value);
+            $value = explode($delimit, $value);
         }
         return $value;
     }
