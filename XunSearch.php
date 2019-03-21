@@ -1,7 +1,6 @@
 <?php
 require dirname(__FILE__) . '/lib/XS.php';
 
-
 /**
  * Class XunSearch 迅搜 扩展类
  *
@@ -593,8 +592,10 @@ class XunSearch extends XS
                 } else {
                     foreach ($synonym as $words) {
                         $synonym = self::setArray($words);
-                        list($word1, $word2) = $synonym;
-                        $index->$fun($word1, $word2);
+                        $raw = array_shift($synonym);
+                        foreach ($synonym as $word) {
+                            $index->$fun($raw, $word);
+                        }
                     }
                 }
             } else {
